@@ -8,17 +8,17 @@ import (
 	luar "github.com/vifino/luar"
 	"os"
 	"regexp"
-	//	"strconv"
+	"strconv"
 	"time"
 )
 
 // Initialization n stuff.
-var instances []*lua.State
+//var instances []*lua.State
 var instancenum int        // This will later be the amount of instances, which will be defined by number of files
 var channels []chan string // Communication chan's.
 
-func init_states(num int) {
-	instances = instance.Init(num)
+func init_states(num int) []*lua.State {
+	instances := instance.Init(num)
 	channels = ipc.MakeChans(num)
 	// Map functions.
 	for i := range instances {
@@ -32,7 +32,7 @@ func init_states(num int) {
 			"sleep":         sleep,
 		})
 	}
-	defer instance.Close(instances)
+	return instances
 }
 
 // IPC
@@ -69,9 +69,9 @@ func main() {
 
 }*/
 func main() {
-	args := os.Args
+	args := os.Args[1:]
 	if len(args) > 0 {
-		init_states(len(args))
+		instances := init_states(len(args))
 		for i := range args {
 			if i == 0 {
 				/*go func() {
@@ -79,6 +79,7 @@ func main() {
 					c <- true
 				}()*/
 			} else {
+				fmt.Println("State " + strconv.Itoa(i) + " executing File: " + args[i])
 				go instance.EvalFile(instances[i], args[i])
 			}
 		}
