@@ -1,32 +1,38 @@
 package ipc
 
-func MakeChans(num int) []chan string {
-	retval := make([]chan string, num)
+type IPCData struct {
+	id      int
+	content string
+}
+
+func MakeChans(num int) []chan IPCData {
+	retval := make([]chan IPCData, num)
 	for i := range retval {
-		retval[i] = make(chan string)
+		retval[i] = make(chan IPCData)
 	}
 	return retval
 }
 
-func Broadcast(chans []chan string, msg string) {
+func Broadcast(chans []chan IPCData, id int, msg string) {
 	for i := range chans {
-		chans[i] <- msg
+		chans[i] <- IPCData{id, msg}
 	}
 }
 
-func Send(channel chan string, msg string) {
-	channel <- msg
+func Send(channel chan IPCData, id int, msg string) {
+	channel <- IPCData{id, msg}
 }
 
-func Receive(channel chan string) string {
-	return <-channel
+func Receive(channel chan IPCData) (int, string) {
+	tmp := <-channel
+	return tmp.id, tmp.content
 }
 
-func ReceiveNonBlocking(channel chan string) string {
+func ReceiveNonBlocking(channel chan IPCData) (int, string) {
 	select {
 	case msg := <-channel:
-		return msg
+		return msg.id, msg.content
 	default:
-		return ""
+		return -1, ""
 	}
 }

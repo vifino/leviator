@@ -14,42 +14,52 @@ import (
 
 // Initialization n stuff.
 //var instances []*lua.State
-var instancenum int        // This will later be the amount of instances, which will be defined by number of files
-var channels []chan string // Communication chan's.
+var instancenum int             // This will later be the amount of instances, which will be defined by number of files
+var channels []chan ipc.IPCData // Communication chan's.
+
+func init_state() *lua.State { // Not normally used, but can be used to add new states at runtime.
+	state := instance.Init_State()
+	state_register(instancenum+1, state)
+	return state
+}
+
+func state_register(id int, state *lua.State) {
+	luar.Register(state, "", luar.Map{
+		"state_id":      id,
+		"regexp":        regexp.Compile, // Regex
+		"println":       fmt.Println,    // Println, just fmt.Println
+		"ipc_read":      ipc_read,
+		"ipc_readNB":    ipc_readNB,
+		"ipc_send":      ipc_send,
+		"ipc_broadcast": ipc_broadcast,
+		"sleep":         sleep,
+	})
+}
 
 func init_states(num int) []*lua.State {
 	instances := instance.Init(num)
 	channels = ipc.MakeChans(num)
 	// Map functions.
 	for i := range instances {
-		luar.Register(instances[i], "", luar.Map{
-			"state_id":      i,
-			"regexp":        regexp.Compile, // Regex
-			"println":       fmt.Println,    // Println, just fmt.Println
-			"ipc_read":      ipc_read,
-			"ipc_readNB":    ipc_readNB,
-			"ipc_send":      ipc_send,
-			"ipc_broadcast": ipc_broadcast,
-			"sleep":         sleep,
-		})
+		state_register(i, instances[i])
 	}
 	return instances
 }
 
 // IPC
-func ipc_send(id int, msg string) {
-	ipc.Send(channels[id], msg)
+func ipc_send(to int, from int, msg string) {
+	ipc.Send(channels[to], from, msg)
 }
 
-func ipc_read(id int) string {
+func ipc_read(id int) (int, string) {
 	return ipc.Receive(channels[id])
 }
 
-func ipc_readNB(id int) string {
+func ipc_readNB(id int) (int, string) {
 	return ipc.ReceiveNonBlocking(channels[id])
 }
-func ipc_broadcast(msg string) {
-	ipc.Broadcast(channels, msg)
+func ipc_broadcast(from int, msg string) {
+	ipc.Broadcast(channels, from, msg)
 }
 
 // Sleep
@@ -75,6 +85,7 @@ func main() {
 }*/
 func main() {
 	args := os.Args[1:]
+	instancenum = len(args)
 	if len(args) > 0 {
 		c := make(chan bool)
 		instances := init_states(len(args))
