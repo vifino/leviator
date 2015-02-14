@@ -13,6 +13,10 @@ func Eval(state *lua.State, code string) {
 	state.DoString(code)
 }
 
+func EvalFile(state *lua.State, filename string) {
+	state.DoFile(filename)
+}
+
 func Init(instances int) []*lua.State {
 	retval := make([]*lua.State, instances)
 	for i := range retval {

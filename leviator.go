@@ -2,18 +2,86 @@ package main
 
 import (
 	instance "./instance"
-	"strconv"
+	ipc "./ipc"
+	"fmt"
+	lua "github.com/vifino/golua/lua"
+	luar "github.com/vifino/luar"
+	"os"
+	"regexp"
+	//	"strconv"
 	"time"
 )
 
-var instancenum int = 10
+// Initialization n stuff.
+var instances []*lua.State
+var instancenum int        // This will later be the amount of instances, which will be defined by number of files
+var channels []chan string // Communication chan's.
 
-// Lua functions
-func main() {
-	instances := instance.Init(instancenum)
-	defer instance.Close(instances)
+func init_states(num int) {
+	instances = instance.Init(num)
+	channels = ipc.MakeChans(num)
+	// Map functions.
 	for i := range instances {
-		go instance.Eval(instances[i], `print("Hooray, I'm instance number `+strconv.Itoa(i)+`!")`)
+		luar.Register(instances[i], "", luar.Map{
+			"state_id":      i,
+			"regexp":        regexp.Compile, // Regex
+			"println":       fmt.Println,    // Println, just fmt.Println
+			"ipc_read":      ipc_read,
+			"ipc_send":      ipc_send,
+			"ipc_broadcast": ipc_broadcast,
+			"sleep":         sleep,
+		})
 	}
-	time.Sleep(30 * time.Second)
+	defer instance.Close(instances)
+}
+
+// IPC
+func ipc_send(id int, msg string) {
+	ipc.Send(channels[id], msg)
+}
+
+func ipc_read(id int) string {
+	return ipc.Receive(channels[id])
+}
+func ipc_broadcast(msg string) {
+	ipc.Broadcast(channels, msg)
+}
+
+// Sleep
+func sleep(seconds int) {
+	time.Sleep(time.Duration(seconds) * time.Second)
+}
+
+// Main thing.
+/*
+func main() {
+	var exitchan chan bool
+	for i := range instances {
+		if i == 0 {
+			go func() {
+				instance.Eval(instances[0], `print("Hooray, I'm instance number `+strconv.Itoa(i)+`!")`)
+				exitchan <- true
+			}()
+		} else {
+			go instance.Eval(instances[i], `print("Hooray, I'm instance number `+strconv.Itoa(i)+`!")`)
+		}
+	}
+
+}*/
+func main() {
+	args := os.Args
+	if len(args) > 0 {
+		init_states(len(args))
+		for i := range args {
+			if i == 0 {
+				/*go func() {
+					instance.EvalFile(instances[0], args[0])
+					c <- true
+				}()*/
+			} else {
+				go instance.EvalFile(instances[i], args[i])
+			}
+		}
+		instance.EvalFile(instances[0], args[0])
+	}
 }
