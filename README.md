@@ -37,8 +37,8 @@ There is also a bit more...
 # IPC:
 This is where the fun stuff begins!
 
-` ipc_send(id, message)` sends `message` to `id`, which is the state id explained above. Message must be a string.
+` ipc_send(id, from, message)` sends `message` to `id`, which is the state id explained above. Message must be a string.
 
-`ipc_read(id)` reads the IPC queue produced by `ipc_send`. Returns the message.
+`ipc_read(id)` reads the IPC queue produced by `ipc_send`. Returns the id and message.
 
-`ipc_readNB(id)` is the same as above, except it doesn't block until a message is there, it just returns "" instead.
+`ipc_readNB(id)` is the same as above, except it doesn't block until a message is there, it just returns 0 and "" instead.
