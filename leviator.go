@@ -71,18 +71,21 @@ func main() {
 func main() {
 	args := os.Args[1:]
 	if len(args) > 0 {
+		c := make(chan bool)
 		instances := init_states(len(args))
 		for i := range args {
 			if i == 0 {
-				/*go func() {
+				fmt.Println("State 0 executing File: " + args[0])
+				go func() {
 					instance.EvalFile(instances[0], args[0])
 					c <- true
-				}()*/
+				}()
 			} else {
 				fmt.Println("State " + strconv.Itoa(i) + " executing File: " + args[i])
 				go instance.EvalFile(instances[i], args[i])
 			}
 		}
-		instance.EvalFile(instances[0], args[0])
+		//instance.EvalFile(instances[0], args[0])
+		<-c
 	}
 }
