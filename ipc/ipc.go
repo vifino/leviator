@@ -21,3 +21,12 @@ func Send(channel chan string, msg string) {
 func Receive(channel chan string) string {
 	return <-channel
 }
+
+func ReceiveNonBlocking(channel chan string) string {
+	select {
+	case msg := <-channel:
+		return msg
+	default:
+		return ""
+	}
+}

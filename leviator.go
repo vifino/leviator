@@ -27,6 +27,7 @@ func init_states(num int) []*lua.State {
 			"regexp":        regexp.Compile, // Regex
 			"println":       fmt.Println,    // Println, just fmt.Println
 			"ipc_read":      ipc_read,
+			"ipc_readNB":    ipc_readNB,
 			"ipc_send":      ipc_send,
 			"ipc_broadcast": ipc_broadcast,
 			"sleep":         sleep,
@@ -42,6 +43,10 @@ func ipc_send(id int, msg string) {
 
 func ipc_read(id int) string {
 	return ipc.Receive(channels[id])
+}
+
+func ipc_readNB(id int) string {
+	return ipc.ReceiveNonBlocking(channels[id])
 }
 func ipc_broadcast(msg string) {
 	ipc.Broadcast(channels, msg)
