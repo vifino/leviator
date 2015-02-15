@@ -41,6 +41,7 @@ func BasicGlue(id int, state *lua.State) {
 		"sleep":         sleep,
 		"_LN_READ":      linenoise.Line, // Line noise binding, for better repls and user input.
 		"ln_addhistory": linenoise.AddHistory,
+		"ln_clear":      linenoise.Clear,
 	})
 	instance.Eval(state, luacode)
 }
