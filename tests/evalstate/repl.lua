@@ -1,8 +1,7 @@
 while true do
-	io.write("> ")
-	str = io.read()
-	--print(str)
+	str = ln_read("> ")
 	ipc_send(1, state_id, "eval:"..str)
+	ln_addhistory(str)
 	id, res = ipc_read(state_id)
 	suc, ret = res:match("^ret(.-):(.-)$")
 	if suc == "True" then

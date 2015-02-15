@@ -1,15 +1,14 @@
 package main
 
 import (
+	glue "./glue"
 	instance "./instance"
 	ipc "./ipc"
 	"fmt"
 	lua "github.com/vifino/golua/lua"
 	luar "github.com/vifino/luar"
 	"os"
-	"regexp"
 	"strconv"
-	"time"
 )
 
 // Initialization n stuff.
@@ -24,16 +23,13 @@ func init_state() *lua.State { // Not normally used, but can be used to add new 
 }
 
 func state_register(id int, state *lua.State) {
-	luar.Register(state, "", luar.Map{
-		"state_id":      id,
-		"regexp":        regexp.Compile, // Regex
-		"println":       fmt.Println,    // Println, just fmt.Println
+	luar.Register(state, "", luar.Map{ // IPC
 		"ipc_read":      ipc_read,
 		"ipc_readNB":    ipc_readNB,
 		"ipc_send":      ipc_send,
 		"ipc_broadcast": ipc_broadcast,
-		"sleep":         sleep,
 	})
+	glue.BasicGlue(id, state)
 }
 
 func init_states(num int) []*lua.State {
@@ -60,11 +56,6 @@ func ipc_readNB(id int) (int, string) {
 }
 func ipc_broadcast(from int, msg string) {
 	ipc.Broadcast(channels, from, msg)
-}
-
-// Sleep
-func sleep(seconds int) {
-	time.Sleep(time.Duration(seconds) * time.Second)
 }
 
 // Main thing.
