@@ -20,6 +20,14 @@ All the [luar](https://github.com/vifino/luar) function are still there, don't p
 
 `sleep(seconds)` is sleep. Does what you expect.
 
+`time_time()` returns the time in format `15:04:05 MST`.
+
+`time_date()` returns the date in format `_2.1.2006`, `_` being expanded if the day is below 10, 9 becomes 09, etc..
+
+`time_fulldate` returns a combination between the two above: `_2.1.2006 15:04:05`
+
+`log(message)` logs messages in a friendly format: `[02.1.2006 15:04:05] [State <id>:path/to/file]: <message>`
+
 ## Regex:
 
 `regexp(regex)` compiles regex expressions, it's regexp.Compile. You normally don't have to use this.
