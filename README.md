@@ -9,9 +9,12 @@ This thing runs lua files, each in a seperate instance, and using IPC you can co
 `leviator file1.lua file2.lua`
 
 # Custom Variables:
-This is easy, there is only `state_id`, which returns the ID of the state.
+This is easy, there is only `state_id` and `state_file`. 
+`state_id` returns the ID of the state.
 0 will always be the first file, 1 the second, etc...
 You use this for IPC, explained further down.
+
+The other variable, `state_file`, is the file the state is currently running.
 
 # Custom Functions:
 All the [luar](https://github.com/vifino/luar) function are still there, don't panic.
