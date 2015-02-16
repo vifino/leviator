@@ -26,7 +26,7 @@ All the [luar](https://github.com/vifino/luar) function are still there, don't p
 
 `time_fulldate` returns a combination between the two above: `_2.1.2006 15:04:05`
 
-`log(message)` logs messages in a friendly format: `[02.1.2006 15:04:05] [State <id>:path/to/file]: <message>`
+`log(message)` logs messages in a friendly format: `[02.1.2006 15:04:05] [State <id>: state_file.lua]: <message>`
 
 ## Regex:
 
