@@ -19,6 +19,9 @@ func Eval(state *lua.State, code string) {
 }
 
 func EvalFile(state *lua.State, filename string) {
+	luar.Register(state, "", luar.Map{
+		"state_filename": filename,
+	})
 	err := state.DoFile(filename)
 	if err != nil {
 		errs := err.Error()

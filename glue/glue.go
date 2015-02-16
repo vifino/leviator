@@ -31,6 +31,9 @@ ln_read = function(prompt)
 		return _LN_READ(tostring(prompt))
 	end
 end
+log = function(...)
+	println("["..time_fulldate().."]".." [State "..state_id..": "..state_filename.."]:".. " "..table.concat({...}, " "))
+end
 `
 
 func BasicGlue(id int, state *lua.State) {
@@ -42,11 +45,27 @@ func BasicGlue(id int, state *lua.State) {
 		"_LN_READ":      linenoise.Line, // Line noise binding, for better repls and user input.
 		"ln_addhistory": linenoise.AddHistory,
 		"ln_clear":      linenoise.Clear,
+		"time_time":     time_time,
+		"time_date":     time_date,
+		"time_fulldate": time_fulldate,
 	})
 	instance.Eval(state, luacode)
 }
 
-// Sleep
+// Time.
+const time_format string = "15:04:05 MST"
+const date_format string = "_2.1.2006"
+const fulldate_format string = "_2.1.2006 15:04:05"
+
 func sleep(seconds int) {
 	time.Sleep(time.Duration(seconds) * time.Second)
+}
+func time_time() string {
+	return time.Now().Format(time_format)
+}
+func time_date() string {
+	return time.Now().Format(date_format)
+}
+func time_fulldate() string {
+	return time.Now().Format(fulldate_format)
 }
