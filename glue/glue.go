@@ -37,14 +37,31 @@ end
 state = {}
 state.new = state_new
 state_new = nil
-state.self = state_self
-state_self = nil
-state.eval = function(state, str)
-	if type(state) ~= "userdata" then
+state.eval = function(s, code)
+	if type(st) == "userdata" and type(file) == "string" then
+		return s.DoString(code)
+	else
 		error("State not userdata!")
 	end
-	return
 end
+state.eval_async_func = state_asynceval
+state_asynceval = nil
+state.eval_async = function(s, code)
+	if type(state) == "userdata" and type(file) == "string" then
+		return state.eval_async_func(s,code)
+	else
+		error("State not userdata!")
+	end
+end
+state.evalFile = function(s, file)
+	if type(s) == "userdata" and type(file) == "string" then
+		return s.DoFile(file)
+	else
+		error("State not userdata!")
+	end
+end
+state.self = state_self
+state_self = nil
 -- LineNoise
 ln = {}
 ln.addhistory = ln_addhistory
@@ -64,13 +81,13 @@ end
 
 func BasicGlue(state *lua.State) {
 	luar.Register(state, "", luar.Map{
-		"regexp":        regexp.Compile, // Regex
-		"println":       fmt.Println,    // Println, just fmt.Println
-		"ln_read":       linenoise.Line, // Line noise binding, for better repls and user input.
-		"ln_addhistory": linenoise.AddHistory,
-		"ln_clear":      linenoise.Clear,
-		"state_self":    state,
-		"state_async":   state_async,
+		"regexp":            regexp.Compile, // Regex
+		"println":           fmt.Println,    // Println, just fmt.Println
+		"ln_read":           linenoise.Line, // Line noise binding, for better repls and user input.
+		"ln_addhistory":     linenoise.AddHistory,
+		"ln_clear":          linenoise.Clear,
+		"state_self":        state,
+		"state_asynceval":   state_async,
 	})
 	luar.Register(state, "time", luar.Map{
 		"time":     time_time,
@@ -118,7 +135,7 @@ func time_fulldate() string {
 
 // State
 
-func state_async(L *lua.State, code string){ // Do. Not. Use.
+func state_async_eval(L *lua.State, code string){ // Do. Not. Use.
 	scheduler.Schedule(func(){
 		L.DoString(code)
 	})
