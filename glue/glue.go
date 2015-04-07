@@ -87,7 +87,7 @@ func BasicGlue(state *lua.State) {
 		"ln_addhistory":     linenoise.AddHistory,
 		"ln_clear":          linenoise.Clear,
 		"state_self":        state,
-		"state_asynceval":   state_async,
+		"state_asynceval":   state_async_eval,
 	})
 	luar.Register(state, "time", luar.Map{
 		"time":     time_time,
