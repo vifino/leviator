@@ -17,7 +17,7 @@ while true do
 				ret = ret..tostring(res)
 				--print(ret)
 				ipc_send(id, state_id, ret)
-			
+
 			else
 				ipc_send(id, state_id, "retFalse:"..tostring(err))
 			end

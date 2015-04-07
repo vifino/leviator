@@ -2,6 +2,7 @@ package glue
 
 import (
 	instance "../instance"
+	scheduler "../scheduler"
 	"fmt"
 	"github.com/GeertJohan/go.linenoise"
 	lua "github.com/vifino/golua/lua"
@@ -10,46 +11,91 @@ import (
 	"time"
 )
 
+import "C"
+
 // Adds regmatch and regsub for easy regex usage.
 const luacode string = `
-regmatch = function(regex, input, num)
+-- Regex
+regex = {}
+regex.match = function(regex, input, num)
 	if type(regex) == "string" then
 		regex = regexp(regex)
 	end
 	return luar.slice2table(regex.FindAllString(tostring(input), tonumber(num) or -1))
 end
-regsub = function(regex, src, replacement)
+regex.sub = function(regex, src, replacement)
 	if type(regex) == "string" then
 		regex = regexp(regex)
 	end
 	return regex.ReplaceAllString(tostring(src), tostring(replacement))
 end
-ln_read = function(prompt)
-	if prompt == nil then
-		return _LN_READ("")
-	else
-		return _LN_READ(tostring(prompt))
-	end
-end
+-- Loggin
 log = function(...)
-	println("["..time_fulldate().."]".." [State "..state_id..": "..state_filename.."]:".. " "..table.concat({...}, " "))
+	println("["..time.fulldate().."]".." [State "..(state_id or "X")..": "..state.filename.."]:".. " "..table.concat({...}, " "))
+end
+-- State
+state = {}
+state.new = state_new
+state_new = nil
+state.self = state_self
+state_self = nil
+state.eval = function(state, str)
+	if type(state) ~= "userdata" then
+		error("State not userdata!")
+	end
+	return
+end
+-- LineNoise
+ln = {}
+ln.addhistory = ln_addhistory
+ln_addhistory = nil
+ln.clear = ln_clear
+ln_clear = nil
+ln.read_func = ln_read
+ln_read = nil
+ln.read = function(prompt)
+	if prompt == nil then
+		return ln.read_func("")
+	else
+		return ln.read_func(tostring(prompt))
+	end
 end
 `
 
-func BasicGlue(id int, state *lua.State) {
+func BasicGlue(state *lua.State) {
 	luar.Register(state, "", luar.Map{
-		"state_id":      id,
 		"regexp":        regexp.Compile, // Regex
 		"println":       fmt.Println,    // Println, just fmt.Println
-		"sleep":         sleep,
-		"_LN_READ":      linenoise.Line, // Line noise binding, for better repls and user input.
+		"ln_read":       linenoise.Line, // Line noise binding, for better repls and user input.
 		"ln_addhistory": linenoise.AddHistory,
 		"ln_clear":      linenoise.Clear,
-		"time_time":     time_time,
-		"time_date":     time_date,
-		"time_fulldate": time_fulldate,
+		"state_self":    state,
+		"state_async":   state_async,
 	})
+	luar.Register(state, "time", luar.Map{
+		"time":     time_time,
+		"date":     time_date,
+		"fulldate": time_fulldate,
+		"sleep":    sleep,
+	})
+	//state.Register("state_loadstring", state_loadstring)
+	state.Register("runbg", runbg)
 	instance.Eval(state, luacode)
+}
+func Glue(state *lua.State,id int) {
+	luar.Register(state, "", luar.Map{
+		"state_id": id,
+	})
+	BasicGlue(state)
+}
+func Args(state *lua.State, args []string) {
+	luar.Register(state, "", luar.Map{
+		"args": args,
+	})
+	state.DoString(`
+		-- Args
+		args = luar.slice2table(args)
+	`)
 }
 
 // Time.
@@ -68,4 +114,42 @@ func time_date() string {
 }
 func time_fulldate() string {
 	return time.Now().Format(fulldate_format)
+}
+
+// State
+
+func state_async(L *lua.State, code string){ // Do. Not. Use.
+	scheduler.Schedule(func(){
+		L.DoString(code)
+	})
+}
+
+/*func (L *lua.State) pcall(nargs, nresults, errfunc int) int {
+	return int(C.lua_pcall(L.s, C.int(nargs), C.int(nresults), C.int(errfunc)))
+}
+
+func state_loadstring(L *lua.State) int {
+	string := L.CheckString(2)
+	state := L.ToUserdata(1)
+	if r := state.LoadString(string); r != 0 {
+		L.PushString(state.ToString(-1))
+		return 1
+	} else {
+		L.PushNil()
+		return 1
+	}
+}
+
+func state_pcall(L *lua.State) int {
+	state := L.touserdata(1)
+	L.CheckAny(1)
+
+}*/
+
+// Async stuff.
+func runbg(L *lua.State) int {
+	L.CheckAny(1)
+	ind := L.GetTop() - 1
+	go L.Pcall(ind, -1, 0)
+	return 0
 }

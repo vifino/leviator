@@ -7,7 +7,11 @@ import (
 )
 
 func Init_State() *lua.State {
-	return luar.Init()
+	state := luar.Init()
+	luar.Register(state, "", luar.Map{
+		"state_new":     Init_State,
+	})
+	return state
 }
 
 func Eval(state *lua.State, code string) {
@@ -36,6 +40,7 @@ func Init(instances int) []*lua.State {
 	}
 	return retval
 }
+
 func Close(instances []*lua.State) {
 	for i := range instances {
 		instances[i].Close()

@@ -4,23 +4,18 @@ import (
 	glue "./glue"
 	instance "./instance"
 	ipc "./ipc"
+	scheduler "./scheduler"
 	"fmt"
 	lua "github.com/vifino/golua/lua"
 	luar "github.com/vifino/luar"
 	"os"
-	"strconv"
+//	"strconv"
 )
 
 // Initialization n stuff.
 //var instances []*lua.State
 var instancenum int             // This will later be the amount of instances, which will be defined by number of files
 var channels []chan ipc.IPCData // Communication chan's.
-
-func init_state() *lua.State { // Not normally used, but can be used to add new states at runtime.
-	state := instance.Init_State()
-	state_register(instancenum+1, state)
-	return state
-}
 
 func state_register(id int, state *lua.State) {
 	luar.Register(state, "", luar.Map{ // IPC
@@ -29,7 +24,7 @@ func state_register(id int, state *lua.State) {
 		"ipc_send":      ipc_send,
 		"ipc_broadcast": ipc_broadcast,
 	})
-	glue.BasicGlue(id, state)
+	glue.Glue(state, id)
 }
 
 func init_states(num int) []*lua.State {
@@ -76,23 +71,14 @@ func main() {
 }*/
 func main() {
 	args := os.Args[1:]
-	instancenum = len(args)
+	instancenum = 0
 	if len(args) > 0 {
-		c := make(chan bool)
-		instances := init_states(len(args))
-		for i := range args {
-			if i == 0 {
-				fmt.Println("State 0 executing File: " + args[0])
-				go func() {
-					instance.EvalFile(instances[0], args[0])
-					c <- true
-				}()
-			} else {
-				fmt.Println("State " + strconv.Itoa(i) + " executing File: " + args[i])
-				go instance.EvalFile(instances[i], args[i])
-			}
-		}
-		//instance.EvalFile(instances[0], args[0])
-		<-c
+		go scheduler.RunScheduler()
+		state := instance.Init_State()
+		glue.Glue(state, 0)
+		glue.Args(state, os.Args)
+		instance.EvalFile(state, args[0])
+	} else {
+		fmt.Println("help.png")
 	}
 }
