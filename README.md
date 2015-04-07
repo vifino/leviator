@@ -9,9 +9,12 @@ This thing runs lua files, each in a seperate instance, and using IPC you can co
 `leviator file1.lua file2.lua`
 
 # Custom Variables:
-This is easy, there is only `state_id`, which returns the ID of the state.
+This is easy, there is only `state_id` and `state_file`. 
+`state_id` returns the ID of the state.
 0 will always be the first file, 1 the second, etc...
 You use this for IPC, explained further down.
+
+The other variable, `state_file`, is the file the state is currently running.
 
 # Custom Functions:
 All the [luar](https://github.com/vifino/luar) function are still there, don't panic.
@@ -19,6 +22,14 @@ All the [luar](https://github.com/vifino/luar) function are still there, don't p
 `println(value)` is `fmt.Println` from Go, simple.
 
 `sleep(seconds)` is sleep. Does what you expect.
+
+`time_time()` returns the time in format `15:04:05 MST`.
+
+`time_date()` returns the date in format `_2.1.2006`, `_` being expanded if the day is below 10, 9 becomes 09, etc..
+
+`time_fulldate` returns a combination between the two above: `_2.1.2006 15:04:05`
+
+`log(message)` logs messages in a friendly format: `[02.1.2006 15:04:05] [State <id>: state_file.lua]: <message>`
 
 ## Regex:
 
