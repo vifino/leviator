@@ -68,9 +68,13 @@ There is more, though :)
 States are basically lua vm's that you can spin up and do stuff with.
 
 `state.new()` returns a new state. The state returned by this will be called `s` below.
+
 `state.self` returns the state that is currently running this. It's dangerous, you can get the state to crash if you aren't careful.
+
 `state.eval(s, code)` eval's code in a state.
+
 `state.evalFile(s, filepath)` is the same as above, but instead of supplying the code in the string, you supply a filepath.
+
 `state.eval_async(s, code)` behaves like `state.eval(s, code)`, but runs the code in the background.
 
 
