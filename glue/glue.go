@@ -101,7 +101,7 @@ state.push=function(L, ...)
 			elseif tpe=="boolean" then
 				L.pushBoolean(v)
 			elseif tpe=="function" then
-				state.loadstring(L, string.dump(v))
+				state.loadbytecode(L, string.dump(v))
 			elseif tpe=="table" then
 				error("Tables not implemented.")
 			else
@@ -201,17 +201,17 @@ end
 
 func BasicGlue(state *lua.State) {
 	luar.Register(state, "", luar.Map{
-		"regexp":            regexp.Compile, // Regex
-		"println":           fmt.Println,    // Println, just fmt.Println
-		"ln_read":           linenoise.Line, // Line noise binding, for better repls and user input.
-		"ln_addhistory":     linenoise.AddHistory,
-		"ln_clear":          linenoise.Clear,
+		"regexp":        regexp.Compile, // Regex
+		"println":       fmt.Println,    // Println, just fmt.Println
+		"ln_read":       linenoise.Line, // Line noise binding, for better repls and user input.
+		"ln_addhistory": linenoise.AddHistory,
+		"ln_clear":      linenoise.Clear,
 	})
 	luar.Register(state, "state", luar.Map{
-		"self":             state,
-		"eval_async_func":  state_async_eval,
-		"byname_func":      state_byname,
-		"loadstring_func":  state_loadstring,
+		"self":            state,
+		"eval_async_func": state_async_eval,
+		"byname_func":     state_byname,
+		"loadstring_func": state_loadstring,
 	})
 	luar.Register(state, "time", luar.Map{
 		"time":     time_time,
@@ -226,7 +226,7 @@ func BasicGlue(state *lua.State) {
 	state.Register("runbg", runbg)
 	instance.Eval(state, luacode)
 }
-func Glue(state *lua.State,id int) {
+func Glue(state *lua.State, id int) {
 	luar.Register(state, "", luar.Map{
 		"state_id": id,
 	})
@@ -262,8 +262,8 @@ func time_fulldate() string {
 
 // State
 
-func state_async_eval(L *lua.State, code string){ // Do. Not. Use.
-	scheduler.Schedule(func(){
+func state_async_eval(L *lua.State, code string) { // Do. Not. Use.
+	scheduler.Schedule(func() {
 		L.DoString(code)
 	})
 }
