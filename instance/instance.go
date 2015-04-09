@@ -8,8 +8,8 @@ import (
 
 func Init_State() *lua.State {
 	state := luar.Init()
-	luar.Register(state, "", luar.Map{
-		"state_new":     Init_State,
+	luar.Register(state, "state", luar.Map{
+		"new":     Init_State,
 	})
 	return state
 }

@@ -34,34 +34,154 @@ log = function(...)
 	println("["..time.fulldate().."]".." [State "..(state_id or "X")..": "..state.filename.."]:".. " "..table.concat({...}, " "))
 end
 -- State
-state = {}
-state.new = state_new
-state_new = nil
-state.eval = function(s, code)
-	if type(st) == "userdata" and type(file) == "string" then
-		return s.DoString(code)
+state.eval = function(s, code, ...)
+	if type(s) == "userdata" then
+		local code = code
+		if s ~= state.self then
+			if type(code) == "function" then
+				code = string.dump(code)
+			end
+			return state.dostring(s, code, ...)
+		else
+			if type(code) == "string" then
+				local ret = s.DoString(code)
+				if ret == nil then
+					return true
+				else
+					return false, ret
+				end
+			else
+				return false, "state.self does not support functions as code."
+			end
+		end
 	else
 		error("State not userdata!")
 	end
 end
-state.eval_async_func = state_asynceval
-state_asynceval = nil
 state.eval_async = function(s, code)
-	if type(state) == "userdata" and type(file) == "string" then
-		return state.eval_async_func(s,code)
+	if type(s) == "userdata" then
+		return state.eval_async_func(s, code)
 	else
 		error("State not userdata!")
 	end
 end
 state.evalFile = function(s, file)
-	if type(s) == "userdata" and type(file) == "string" then
+	if type(s) == "userdata" then
 		return s.DoFile(file)
 	else
 		error("State not userdata!")
 	end
 end
-state.self = state_self
-state_self = nil
+state.loadbytecode = function(s, code, name)
+	if type(s) == "userdata" then
+		local res = s.LoadBuffer(code, #code, name or "str")
+		if res~=0 then
+				local err=s.ToString(-1)
+				s.SetTop(-2)
+				return false,err
+			else
+				return true
+			end
+	else
+		error("State not userdata!")
+	end
+end
+state.push=function(L, ...)
+	if type(L) == "userdata" then
+		local p={...}
+		for i=1,select("#",...) do
+			local v=p[i]
+			local tpe=type(v)
+			if tpe=="string" then
+				L.PushString(v)
+			elseif tpe=="number" then
+				L.PushNumber(v)
+			elseif tpe=="nil" then
+				L.PushNil()
+			elseif tpe=="boolean" then
+				L.pushBoolean(v)
+			elseif tpe=="function" then
+				state.loadstring(L, string.dump(v))
+			elseif tpe=="table" then
+				error("Tables not implemented.")
+			else
+				error("Unsupported type: "..tpe)
+			end
+		end
+	else
+		error("State not userdata!")
+	end
+end
+state.type = function(L, n)
+	if type(L) == "userdata" then
+		return go.LuaValType2int(L.Type(n))
+	else
+		error("State not userdata!")
+	end
+end
+state.pop = function(L, n)
+	if type(L) == "userdata" then
+		n=n or 1
+		local o={}
+		for i=n,1,-1 do
+			local tpe=state.type(L, -1)
+			if tpe==0 then
+				o[i]=nil
+			elseif tpe==1 then
+				o[i]=L.ToBoolean(-1)
+			elseif tpe==2 or tpe==7 then
+				o[i]=L.ToUserdata(-1)
+			elseif tpe==3 then
+				o[i]=L.ToNumber(-1)
+			elseif tpe==4 then
+				o[i]=L.ToString(-1)
+			elseif tpe==5 then
+				o[i]={}
+			elseif tpe==6 then
+				--local ou=""
+				--local writer=ffi.cast("lua_Writer",function(L,p,sz,ud)
+				--	ou=ou..ffi.string(p,sz)
+				--	return 0
+				--end)
+				--LC.dump(writer,nil)
+				--o[i]=assert(loadstring(ou))
+			elseif tpe==8 then
+				o[i]=L.ToThread(-1)
+			end
+			L.SetTop(-2)
+		end
+		return unpack(o,1,n)
+	else
+		error("State not userdata!")
+	end
+end
+state.pcall = function(L, ...)
+	if type(L) == "userdata" then
+		local t=L.GetTop()
+		state.push(L,...)
+		local res=L.Pcall(select("#",...),-1,0)
+		if res==0 then
+			return true,state.pop(L, (L.GetTop()-t)+1)
+		else
+			local err=L.ToString(-1)
+			L.SetTop(-2)
+			return false,err
+		end
+	else
+		error("State not userdata!")
+	end
+end
+state.dostring = function(L, txt,...)
+	if type(L) == "userdata" then
+		local func,err=state.loadbytecode(L, txt)
+		if not func then
+			return false,err
+		end
+		return state.pcall(L, ...)
+	else
+		error("State not userdata!")
+	end
+end
 -- LineNoise
 ln = {}
 ln.addhistory = ln_addhistory
@@ -86,14 +206,21 @@ func BasicGlue(state *lua.State) {
 		"ln_read":           linenoise.Line, // Line noise binding, for better repls and user input.
 		"ln_addhistory":     linenoise.AddHistory,
 		"ln_clear":          linenoise.Clear,
-		"state_self":        state,
-		"state_asynceval":   state_async_eval,
+	})
+	luar.Register(state, "state", luar.Map{
+		"self":             state,
+		"eval_async_func":  state_async_eval,
+		"byname_func":      state_byname,
+		"loadstring_func":  state_loadstring,
 	})
 	luar.Register(state, "time", luar.Map{
 		"time":     time_time,
 		"date":     time_date,
 		"fulldate": time_fulldate,
 		"sleep":    sleep,
+	})
+	luar.Register(state, "go", luar.Map{
+		"LuaValType2int": LuaValType2int,
 	})
 	//state.Register("state_loadstring", state_loadstring)
 	state.Register("runbg", runbg)
@@ -141,27 +268,23 @@ func state_async_eval(L *lua.State, code string){ // Do. Not. Use.
 	})
 }
 
-/*func (L *lua.State) pcall(nargs, nresults, errfunc int) int {
-	return int(C.lua_pcall(L.s, C.int(nargs), C.int(nresults), C.int(errfunc)))
+func state_byname(L *lua.State, name string) *luar.LuaObject {
+	return luar.NewLuaObjectFromName(L, name)
 }
 
-func state_loadstring(L *lua.State) int {
-	string := L.CheckString(2)
-	state := L.ToUserdata(1)
-	if r := state.LoadString(string); r != 0 {
-		L.PushString(state.ToString(-1))
-		return 1
+func state_loadstring(L *lua.State, code string) error {
+	if err := L.DoString(code); err != nil {
+		return err
 	} else {
-		L.PushNil()
-		return 1
+		return nil
 	}
 }
 
-func state_pcall(L *lua.State) int {
-	state := L.touserdata(1)
-	L.CheckAny(1)
+// Go helper functions.
 
-}*/
+func LuaValType2int(V lua.LuaValType) int {
+	return int(V)
+}
 
 // Async stuff.
 func runbg(L *lua.State) int {

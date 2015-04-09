@@ -1,9 +1,9 @@
 while true do
-	code = ln.read("> ")
+	local code = ln.read("> ")
 	ln.addhistory(code)
-	func, err = loadstring(code)
+	local func, err = loadstring(code)
 	if func then
-		suc, res = pcall(func)
+		local suc, res = pcall(func)
 		--suc = true
 		--res = func()
 		--print(suc, res)
